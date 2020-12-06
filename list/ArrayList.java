@@ -136,32 +136,41 @@ public class ArrayList<E> implements List<E>, Iterable<E> {
 
     private class listIterator implements Iterator<E> {
         private int lastReturnedIndex = -1;
-        private int nextIndex = 0;
+        private int cursor;
 
         public listIterator() {
-            nextIndex = 0;
+            cursor = 0;
         }
 
         @Override
         public boolean hasNext() {
-            return (nextIndex < size);
+            return (cursor < size);
         }
 
         @Override
+        @SuppressWarnings("unchecked")
         public E next() {
             if (!hasNext()) {
                 throw new NoSuchElementException();
             }
-            lastReturnedIndex = nextIndex;
-            @SuppressWarnings("unchecked")
-            final E e = (E) elementData[lastReturnedIndex];
-            nextIndex++;
+            lastReturnedIndex = cursor;
+            final E e = (E) ArrayList.this.elementData[lastReturnedIndex];
+            cursor++;
             return e;
         }
 
-        public void reset() {
-            lastReturnedIndex = 0;
-            nextIndex = 0;
+        @Override
+        public void remove() {
+            if (lastReturnedIndex < 0) {
+                throw new IllegalStateException();
+            }
+            try {
+                ArrayList.this.remove(lastReturnedIndex);
+                cursor = lastReturnedIndex;
+                lastReturnedIndex = -1;
+            } catch (IndexOutOfBoundsException ex) {
+                throw new RuntimeException("concurrent modification while remove list elements");
+            }
         }
     }
 }
