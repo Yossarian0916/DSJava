@@ -1,6 +1,6 @@
 package map;
 
-import java.util.ArrayList;
+import list.ArrayList;
 import java.util.Random;
 
 public abstract class AbstractHashMap<K, V> extends AbstractMap<K, V> {
@@ -45,7 +45,7 @@ public abstract class AbstractHashMap<K, V> extends AbstractMap<K, V> {
     public V put(K key, V value) {
         V retValue = bucketPut(hashValue(key), key, value);
         if (n > capacity / 2) { // load factor <= 0.5
-            resize(2 * capacity - 1);
+            resize(2 * capacity - 1); // better: ensure new capacity is a prime number
         }
         return retValue;
     }

@@ -1,7 +1,6 @@
 package tree;
 
-import java.util.ArrayList;
-import java.util.List;
+import list.ArrayList;
 
 public interface BinaryTree<E> extends Tree<E> {
 
@@ -39,7 +38,7 @@ public interface BinaryTree<E> extends Tree<E> {
 
     @Override
     default Iterable<Position<E>> children(Position<E> p) throws IllegalArgumentException {
-        List<Position<E>> snapshot = new ArrayList<>(2);
+        ArrayList<Position<E>> snapshot = new ArrayList<>(2);
         if (left(p) != null) {
             snapshot.add(left(p));
         }

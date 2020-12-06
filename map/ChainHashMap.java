@@ -1,6 +1,6 @@
 package map;
 
-import java.util.ArrayList;
+import list.ArrayList;
 
 public class ChainHashMap<K, V> extends AbstractHashMap<K, V> {
     private UnsortedTableMap<K, V>[] table;
@@ -14,6 +14,7 @@ public class ChainHashMap<K, V> extends AbstractHashMap<K, V> {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     protected void createTable() {
         this.table = (UnsortedTableMap<K, V>[]) new UnsortedTableMap[this.capacity];
     }
@@ -77,7 +78,7 @@ class UnsortedTableMap<K, V> extends AbstractMap<K, V> {
         return table.size();
     }
 
-    private int findKey(K key) {
+    private int findIdx(K key) {
         for (int i = 0; i < size(); i++) {
             if (table.get(i).getKey().equals(key)) {
                 return i;
@@ -88,7 +89,7 @@ class UnsortedTableMap<K, V> extends AbstractMap<K, V> {
 
     @Override
     public V get(K key) {
-        int idx = findKey(key);
+        int idx = findIdx(key);
         if (idx == -1) {
             return null;
         }
@@ -97,7 +98,7 @@ class UnsortedTableMap<K, V> extends AbstractMap<K, V> {
 
     @Override
     public V put(K key, V value) {
-        int idx = findKey(key);
+        int idx = findIdx(key);
         if (idx == -1) {
             table.add(new MapEntry<K, V>(key, value));
             return null;
@@ -107,7 +108,7 @@ class UnsortedTableMap<K, V> extends AbstractMap<K, V> {
 
     @Override
     public V remove(K key) {
-        int idx = findKey(key);
+        int idx = findIdx(key);
         if (idx == -1) {
             return null;
         }
@@ -118,7 +119,7 @@ class UnsortedTableMap<K, V> extends AbstractMap<K, V> {
 
     @Override
     public boolean containsKey(K key) {
-        return (findKey(key) != -1);
+        return (findIdx(key) != -1);
     }
 
     @Override
