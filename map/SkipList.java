@@ -5,6 +5,8 @@ package map;
 
 import java.util.Random;
 
+import javax.swing.plaf.basic.BasicInternalFrameTitlePane.MaximizeAction;
+
 import list.ArrayList;
 
 public class SkipList<K extends Comparable<K>, V> extends AbstractMap<K, V> implements SortedMap<K, V> {
@@ -22,10 +24,10 @@ public class SkipList<K extends Comparable<K>, V> extends AbstractMap<K, V> impl
 
     public SkipList(int maxLevel) {
         this.MAX_LEVEL = maxLevel;
-        this.HEADER = new Node<>(null, null, MAX_LEVEL + 1);
-        this.TRAILER = new Node<>(null, null, MAX_LEVEL + 1);
-        for (int i = 0; i <= MAX_LEVEL; i++) {
-            HEADER.rights[i] = TRAILER;
+        this.HEADER = new Node<>(null, null, MAX_LEVEL);
+        this.TRAILER = new Node<>(null, null, MAX_LEVEL);
+        for (int i = 0; i < MAX_LEVEL; i++) {
+            HEADER.forwards[i] = TRAILER;
         }
         this.rand = new Random(System.currentTimeMillis());
         this.levelCount = 1;
@@ -35,14 +37,14 @@ public class SkipList<K extends Comparable<K>, V> extends AbstractMap<K, V> impl
         K key;
         V value;
         int level;
-        Node<K, V>[] rights;
+        Node<K, V>[] forwards;
 
         @SuppressWarnings("unchecked")
         public Node(K key, V value, int level) {
             this.key = key;
             this.value = value;
             this.level = level;
-            this.rights = (Node<K, V>[]) new Node[level];
+            this.forwards = (Node<K, V>[]) new Node[level];
         }
 
         @Override
@@ -58,14 +60,15 @@ public class SkipList<K extends Comparable<K>, V> extends AbstractMap<K, V> impl
 
     private Node<K, V> search(K key) {
         /**
-         * @return the entry with the greatest key value less than or equal to key
+         * @return the entry with the least key value greater than or equal to key
          */
         Node<K, V> node = HEADER;
         for (int i = levelCount; i >= 0; i--) {
-            while ((node.rights[i] != TRAILER) && (node.rights[i].key.compareTo(key) <= 0)) {
-                node = node.rights[i];
+            while ((node.forwards[i] != TRAILER) && (node.forwards[i].key.compareTo(key) < 0)) {
+                node = node.forwards[i];
             }
         }
+        node = node.forwards[0];
         return node;
     }
 
@@ -77,48 +80,61 @@ public class SkipList<K extends Comparable<K>, V> extends AbstractMap<K, V> impl
         return level;
     }
 
-    private void insert(K key, V value) {
+    private V insert(K key, V value) {
+        @SuppressWarnings("unchecked")
+        Node<K, V>[] update = (Node<K, V>[]) new Node[MAX_LEVEL];
+        Node<K, V> node = HEADER;
+        for (int i = levelCount; i >= 0; i--) {
+            while ((node.forwards[i] != TRAILER) && (node.forwards[i].key.compareTo(key) < 0)) {
+                node = node.forwards[i];
+            }
+            update[i] = node;
+        }
+        // update existed node
+        node = node.forwards[0];
+        if ((node != TRAILER) && (node.key.compareTo(key) == 0)) {
+            V oldValue = node.value;
+            node.value = value;
+            return oldValue;
+        }
+        // insert new node
         int level = getRandomLevel();
-        // each time only increment max skip-list level by 1;
         if (level > levelCount) {
+            for (int i = levelCount + 1; i < MAX_LEVEL; i++) {
+                update[i] = HEADER;
+            }
+            // each time only increment max skip-list level by 1;
             levelCount++;
             level = levelCount;
         }
         Node<K, V> newNode = new Node<>(key, value, level);
-        Node<K, V> node = HEADER;
-        for (int i = levelCount; i >= 0; i--) {
-            while ((node.rights[i] != TRAILER) && (node.rights[i].key.compareTo(key) <= 0)) {
-                node = node.rights[i];
-            }
-            if (i < level) {
-                Node<K, V> next = node.rights[i];
-                // update node.rights array
-                node.rights[i] = newNode;
-                newNode.rights[i] = next;
-            }
+        for (int i = 0; i < newNode.level; i++) {
+            newNode.forwards[i] = update[i].forwards[i];
+            update[i].forwards[i] = newNode;
         }
         size++;
+        return value;
     }
 
-    @SuppressWarnings("unchecked")
     private V delete(K key) {
+        @SuppressWarnings("unchecked")
         Node<K, V>[] update = (Node<K, V>[]) new Node[levelCount + 1];
         Node<K, V> node = HEADER;
         for (int i = levelCount; i >= 0; i--) {
-            while ((node.rights[i] != TRAILER) && (node.rights[i].key.compareTo(key) < 0)) {
-                node = node.rights[i];
+            while ((node.forwards[i] != TRAILER) && (node.forwards[i].key.compareTo(key) < 0)) {
+                node = node.forwards[i];
             }
             // prev node just before to-be-removed node
             update[i] = node;
         }
-        node = node.rights[0];
+        node = node.forwards[0];
         // invalid key, such node does not exist in skip-list
         if (node.key.compareTo(key) != 0) {
             return null;
         }
 
         for (int i = 0; i < node.level; i++) {
-            update[i].rights[i] = node.rights[i];
+            update[i].forwards[i] = node.forwards[i];
         }
         size--;
         return node.value;
@@ -133,7 +149,7 @@ public class SkipList<K extends Comparable<K>, V> extends AbstractMap<K, V> impl
                 if (node != HEADER) {
                     sb.append(node.key + " ");
                 }
-                node = node.rights[i];
+                node = node.forwards[i];
             }
             sb.append("]");
         }
@@ -148,7 +164,7 @@ public class SkipList<K extends Comparable<K>, V> extends AbstractMap<K, V> impl
     @Override
     public V get(K key) {
         Node<K, V> node = search(key);
-        if (node.key != key) {
+        if (key.compareTo(node.key) != 0) {
             return null;
         }
         return node.value;
@@ -156,14 +172,7 @@ public class SkipList<K extends Comparable<K>, V> extends AbstractMap<K, V> impl
 
     @Override
     public V put(K key, V value) {
-        Node<K, V> node = search(key);
-        if (node.key == key) {
-            V oldValue = node.value;
-            node.value = value;
-            return oldValue;
-        }
-        insert(key, value);
-        return value;
+        return insert(key, value);
     }
 
     @Override
@@ -188,7 +197,7 @@ public class SkipList<K extends Comparable<K>, V> extends AbstractMap<K, V> impl
             if (node != HEADER) {
                 snapshot.add(node);
             }
-            node = node.rights[0];
+            node = node.forwards[0];
         }
         return snapshot;
     }
@@ -196,18 +205,32 @@ public class SkipList<K extends Comparable<K>, V> extends AbstractMap<K, V> impl
     @Override
     public Entry<K, V> firstEntry() {
         Node<K, V> node = HEADER;
-        if (node.rights[0] == TRAILER) {
+        if (node.forwards[0] == TRAILER) {
             return null;
         }
-        return node.rights[0];
+        return node.forwards[0];
     }
 
     @Override
     public Entry<K, V> lastEntry() {
         Node<K, V> node = HEADER;
         for (int i = levelCount; i >= 0; i--) {
-            while (node.rights[i] != TRAILER) {
-                node = node.rights[i];
+            while (node.forwards[i] != TRAILER) {
+                node = node.forwards[i];
+            }
+        }
+        return node;
+    }
+
+    @Override
+    public Entry<K, V> floorEntry(K key) {
+        /**
+         * @return the entry with the greatest key value less than or equal to key
+         */
+        Node<K, V> node = HEADER;
+        for (int i = levelCount; i >= 0; i--) {
+            while ((node.forwards[i] != TRAILER) && (node.forwards[i].key.compareTo(key) <= 0)) {
+                node = node.forwards[i];
             }
         }
         return node;
@@ -218,19 +241,13 @@ public class SkipList<K extends Comparable<K>, V> extends AbstractMap<K, V> impl
         /**
          * @return the entry with the least key value greater than or equal to key
          */
-        Node<K, V> node = search(key);
-        if (node.key.compareTo(key) < 0) {
-            node = node.rights[0];
+        Node<K, V> node = HEADER;
+        for (int i = levelCount; i >= 0; i--) {
+            while ((node.forwards[i] != TRAILER) && (node.forwards[i].key.compareTo(key) < 0)) {
+                node = node.forwards[i];
+            }
         }
-        return node;
-    }
-
-    @Override
-    public Entry<K, V> floorEntry(K key) {
-        /**
-         * @return the entry with the greatest key value less than or equal to key
-         */
-        return search(key);
+        return node.forwards[0];
     }
 
     @Override
@@ -240,8 +257,8 @@ public class SkipList<K extends Comparable<K>, V> extends AbstractMap<K, V> impl
          */
         Node<K, V> node = HEADER;
         for (int i = levelCount; i >= 0; i--) {
-            while ((node.rights[i] != TRAILER) && (node.rights[i].key.compareTo(key) < 0)) {
-                node = node.rights[i];
+            while ((node.forwards[i] != TRAILER) && (node.forwards[i].key.compareTo(key) < 0)) {
+                node = node.forwards[i];
             }
         }
         return node;
@@ -252,8 +269,13 @@ public class SkipList<K extends Comparable<K>, V> extends AbstractMap<K, V> impl
         /**
          * @return the entry with the least key value strictly greater than key
          */
-        Node<K, V> node = search(key);
-        return node.rights[0];
+        Node<K, V> node = HEADER;
+        for (int i = levelCount; i >= 0; i--) {
+            while ((node.forwards[i] != TRAILER) && (node.forwards[i].key.compareTo(key) <= 0)) {
+                node = node.forwards[i];
+            }
+        }
+        return node.forwards[0];
     }
 
     @Override
@@ -270,14 +292,14 @@ public class SkipList<K extends Comparable<K>, V> extends AbstractMap<K, V> impl
         ArrayList<Entry<K, V>> view = new ArrayList<>();
         Node<K, V> node = HEADER;
         for (int i = levelCount; i >= 0; i--) {
-            while ((node.rights[i] != TRAILER) && (node.rights[i].key.compareTo(fromKey) < 0)) {
-                node = node.rights[i];
+            while ((node.forwards[i] != TRAILER) && (node.forwards[i].key.compareTo(fromKey) < 0)) {
+                node = node.forwards[i];
             }
         }
-        node = node.rights[0];
+        node = node.forwards[0];
         while (node.key.compareTo(toKey) < 0) {
             view.add(node);
-            node = node.rights[0];
+            node = node.forwards[0];
         }
         return view;
     }
