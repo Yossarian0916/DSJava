@@ -5,8 +5,6 @@ package map;
 
 import java.util.Random;
 
-import javax.swing.plaf.basic.BasicInternalFrameTitlePane.MaximizeAction;
-
 import list.ArrayList;
 
 public class SkipList<K extends Comparable<K>, V> extends AbstractMap<K, V> implements SortedMap<K, V> {

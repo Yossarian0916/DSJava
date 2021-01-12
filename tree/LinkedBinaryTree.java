@@ -2,7 +2,6 @@ package tree;
 
 import java.util.ArrayDeque;
 import java.util.Iterator;
-import java.util.List;
 import java.util.NoSuchElementException;
 
 public class LinkedBinaryTree<E> implements BinaryTree<E> {
@@ -187,30 +186,6 @@ public class LinkedBinaryTree<E> implements BinaryTree<E> {
     public Position<E> right(Position<E> p) throws IllegalArgumentException {
         Node<E> node = validate(p);
         return node.getRight();
-    }
-
-    private void preorderSubtree(Position<E> node, List<Position<E>> snapshot) {
-        snapshot.add(node);
-        for (Position<E> child : children(node)) {
-            preorderSubtree(child, snapshot);
-        }
-    }
-
-    private void postorderSubtree(Position<E> node, List<Position<E>> snapshot) {
-        for (Position<E> child : children(node)) {
-            postorderSubtree(child, snapshot);
-        }
-        snapshot.add(node);
-    }
-
-    private void inorderSubtree(Position<E> node, List<Position<E>> snapshot) {
-        if (left(node) != null) {
-            inorderSubtree(left(node), snapshot);
-        }
-        snapshot.add(node);
-        if (right(node) != null) {
-            inorderSubtree(right(node), snapshot);
-        }
     }
 
     @Override
