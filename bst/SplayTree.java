@@ -105,7 +105,7 @@ public class SplayTree<K extends Comparable<K>, V> implements SortedMap<K, V> {
             return null;
         }
         splay(key, root);
-        if (root.key == key) {
+        if (key.compareTo(root.key) == 0) {
             return root.value;
         }
         return null;
